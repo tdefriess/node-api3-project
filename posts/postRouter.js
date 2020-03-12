@@ -40,9 +40,17 @@ router.delete('/:id', validatePostId, (req, res) => {
 router.put('/:id', validatePostId, validatePost, (req, res) => {
   Posts.update(req.post.id, req.body)
     .then(count => {
-      res.status(200).json({
-        message: `${count} records updated`
-      })
+      Posts.getById(req.post.id)
+        .then(post => {
+          res.status(200).json(post)
+        })
+        .catch(err => {
+          console.log(err);
+          res.status(500).json({
+            message: "Updated post could not be found",
+            error: err
+          })
+        })      
     })
     .catch(err => {
       console.log(err);
