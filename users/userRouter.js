@@ -1,6 +1,7 @@
 const express = require('express');
 
 const Users = require('./userDb.js');
+const Posts = require('../posts/postDb.js')
 
 const router = express.Router();
 
@@ -21,8 +22,22 @@ router.post('/', validateUser, (req, res) => {
     })
 });
 
-router.post('/:id/posts', (req, res) => {
-  // do your magic!
+router.post('/:id/posts', validateUserId, validatePost, (req, res) => {
+  const post = {
+    user_id: req.user.id,
+    text: req.body.text
+  }
+  console.log(post);
+  Posts.insert(post)
+    .then(post => {
+      res.status(200).json(post);
+    })
+    .catch(err => {
+      console.log(err);
+      res.status(500).json({
+        error: 'Could not add post to database'
+      })
+    })
 });
 
 router.get('/', (req, res) => {
@@ -39,24 +54,10 @@ router.get('/', (req, res) => {
 });
 
 router.get('/:id', validateUserId, (req, res) => {
-  const { id } = req.params;
-  console.log('id from get', id)
-  console.log('req.user from get', req.user)
-  res.status(200).json(req.user);
-  // Users.getById(id)
-  //   .then(data => {
-  //     console.log('data', data);
-  //     res.status(200).json(data)
-  //   })
-  //   .catch(err => {
-  //     // console.log(err);
-  //     // res.status(500).json({
-  //     //   error: "Could not retrieve that user"
-  //     // })
-  //   })
+  res.status(200).json(req.user);  
 });
 
-router.get('/:id/posts', (req, res) => {
+router.get('/:id/posts', validateUserId, (req, res) => {
   const { id } = req.params;
   Users.getUserPosts(id)
     .then(posts => {
@@ -70,7 +71,7 @@ router.get('/:id/posts', (req, res) => {
     })
 });
 
-router.delete('/:id', (req, res) => {
+router.delete('/:id', validateUserId, (req, res) => {
   const { id } = req.params;
   Users.remove(id)
     .then(records => {
@@ -85,7 +86,7 @@ router.delete('/:id', (req, res) => {
     })
 });
 
-router.put('/:id', (req, res) => {
+router.put('/:id', validateUserId, (req, res) => {
   const { id } = req.params;
   const name = {name: req.body.name};
   Users.update(id, name)
@@ -105,8 +106,7 @@ router.put('/:id', (req, res) => {
 
 function validateUserId(req, res, next) {
   const id = req.params.id;
-  console.log(`\nValidating user ID...\n`)
-  console.log('User ID:', id)
+  console.log(`\nValidating user ID...\n`)  
   
   Users.getById(id)
     .then(user => {
@@ -127,8 +127,6 @@ function validateUserId(req, res, next) {
         error: "There was a problem fetching user data"
       })
     })
-
-  next();
 }
 
 function validateUser(req, res, next) {
